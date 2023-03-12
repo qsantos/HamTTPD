@@ -29,6 +29,28 @@ struct MessageForm {
     message: String,
 }
 
+struct User {
+    callsign: String,
+    display_name: String,
+    email: String,
+}
+
+impl User {
+    fn from_dn(distinguished_name: &str) -> Option<User> {
+        let parts: HashMap<&str, &str> = distinguished_name
+            .split('/')
+            .filter(|part| !part.is_empty())
+            .map(|part| part.split_once('='))
+            .collect::<Option<_>>()?;
+
+        Some(User {
+            callsign: parts.get(CALLSIGN_OID)?.to_string(),
+            display_name: parts.get(DISPLAYNAME_OID)?.to_string(),
+            email: parts.get(EMAIL_OID)?.to_string(),
+        })
+    }
+}
+
 async fn root(
     State(state): State<Arc<AppState>>,
     Query(params): Query<HashMap<String, String>>,
@@ -37,27 +59,20 @@ async fn root(
     let distinguished_name = params
         .get("dn")
         .expect("Missing dn parameter in query string");
-    let parts: HashMap<_, _> = distinguished_name
-        .split('/')
-        .filter(|part| !part.is_empty())
-        .map(|part| part.split_once('=').expect("Unexpected dn format"))
-        .collect();
-
-    let callsign = parts.get(CALLSIGN_OID).expect("Missing callsign in dn");
-    let display_name = parts
-        .get(DISPLAYNAME_OID)
-        .expect("Missing display name in dn");
-    let email = parts.get(EMAIL_OID).expect("Missing email in dn");
+    let user = User::from_dn(distinguished_name).expect("Could not authenticate user");
 
     if let Some(form) = form {
         state.messages.lock().unwrap().push(Message {
             created: Utc::now(),
-            author: callsign.to_string(),
+            author: user.callsign.to_string(),
             contents: form.message.to_string(),
         });
     }
 
-    let welcome = format!("Hello <a href=\"mailto:{email}\">{display_name}</a>. Your call sign is <strong>{callsign}</strong>");
+    let welcome = format!(
+        "Hello <a href=\"mailto:{}\">{}</a>. Your call sign is <strong>{}</strong>",
+        user.email, user.display_name, user.callsign
+    );
 
     let messages = state.messages.lock().unwrap();
     let messages: Vec<&str> = messages
