@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use std::ops::Deref;
+use std::env;
+use std::ops::DerefMut;
 use std::sync::{Arc, Mutex};
 
 use askama::Template;
@@ -9,22 +10,18 @@ use axum::{
     routing::get,
     Form, Router, Server,
 };
-use chrono::{DateTime, Utc};
+use diesel::{Connection, PgConnection, RunQueryDsl};
 use serde::Deserialize;
+
+pub mod models;
+pub mod schema;
 
 const CALLSIGN_OID: &str = "1.3.6.1.4.1.12348.1.1";
 const DISPLAYNAME_OID: &str = "CN";
 const EMAIL_OID: &str = "emailAddress";
 
-#[allow(dead_code)] // the fields are read through a template
-struct Message {
-    author: String,
-    created: DateTime<Utc>,
-    contents: String,
-}
-
 struct AppState {
-    messages: Mutex<Vec<Message>>,
+    db: Mutex<PgConnection>,
 }
 
 #[derive(Deserialize)]
@@ -56,9 +53,9 @@ impl User {
 
 #[derive(Template)]
 #[template(path = "index.html")]
-struct IndexTemplate<'a> {
+struct IndexTemplate {
     user: User,
-    messages: &'a Vec<Message>,
+    messages: Vec<models::Message>,
 }
 
 async fn root(
@@ -71,24 +68,26 @@ async fn root(
         .expect("Missing dn parameter in query string");
     let user = User::from_dn(distinguished_name).expect("Could not authenticate user");
 
+    let mut guard = state
+        .db
+        .lock()
+        .expect("Failed to acquire lock on database connection");
+    let db = guard.deref_mut();
+
     if let Some(form) = form {
-        state
-            .messages
-            .lock()
-            .expect("Failed to acquire lock on messages")
-            .push(Message {
-                created: Utc::now(),
-                author: user.callsign.to_string(),
-                contents: form.message.to_string(),
-            });
+        let message = models::NewMessage {
+            author: &user.callsign,
+            content: &form.message,
+        };
+        diesel::insert_into(schema::message::table)
+            .values(&message)
+            .execute(db)
+            .expect("Could not insert message");
     }
 
-    let messages_guard = state
-        .messages
-        .lock()
-        .expect("Failed to acquire lock on messages");
-
-    let messages = messages_guard.deref();
+    let messages = self::schema::message::dsl::message
+        .load::<models::Message>(db)
+        .expect("Error loading messages");
 
     let template = IndexTemplate { user, messages };
     Html(template.render().unwrap())
@@ -96,9 +95,11 @@ async fn root(
 
 #[tokio::main]
 async fn main() {
-    let shared_state = Arc::new(AppState {
-        messages: Mutex::new(vec![]),
-    });
+    let database_url =
+        env::var("DATABASE_URL").expect("Please set the DATABASE_URL environment variable");
+    let db = PgConnection::establish(&database_url).expect("Failed to connect to database");
+
+    let shared_state = Arc::new(AppState { db: Mutex::new(db) });
 
     let app = Router::new()
         .route("/", get(root).post(root))
