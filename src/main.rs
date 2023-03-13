@@ -1,6 +1,8 @@
 use std::collections::HashMap;
+use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 
+use askama::Template;
 use axum::{
     extract::{Query, State},
     response::Html,
@@ -14,6 +16,7 @@ const CALLSIGN_OID: &str = "1.3.6.1.4.1.12348.1.1";
 const DISPLAYNAME_OID: &str = "CN";
 const EMAIL_OID: &str = "emailAddress";
 
+#[allow(dead_code)] // the fields are read through a template
 struct Message {
     author: String,
     created: DateTime<Utc>,
@@ -51,6 +54,13 @@ impl User {
     }
 }
 
+#[derive(Template)]
+#[template(path = "index.html")]
+struct IndexTemplate<'a> {
+    user: User,
+    messages: &'a Vec<Message>,
+}
+
 async fn root(
     State(state): State<Arc<AppState>>,
     Query(params): Query<HashMap<String, String>>,
@@ -62,25 +72,26 @@ async fn root(
     let user = User::from_dn(distinguished_name).expect("Could not authenticate user");
 
     if let Some(form) = form {
-        state.messages.lock().unwrap().push(Message {
-            created: Utc::now(),
-            author: user.callsign.to_string(),
-            contents: form.message.to_string(),
-        });
+        state
+            .messages
+            .lock()
+            .expect("Failed to acquire lock on messages")
+            .push(Message {
+                created: Utc::now(),
+                author: user.callsign.to_string(),
+                contents: form.message.to_string(),
+            });
     }
 
-    let welcome = format!(
-        "Hello <a href=\"mailto:{}\">{}</a>. Your call sign is <strong>{}</strong>",
-        user.email, user.display_name, user.callsign
-    );
+    let messages_guard = state
+        .messages
+        .lock()
+        .expect("Failed to acquire lock on messages");
 
-    let messages = state.messages.lock().unwrap();
-    let messages: Vec<&str> = messages
-        .iter()
-        .map(|message| message.contents.as_str())
-        .collect();
+    let messages = messages_guard.deref();
 
-    Html(welcome + "<br><form method=\"post\" action=\"\"><input type=\"text\" name=\"message\" /></form>" + &messages.join(" "))
+    let template = IndexTemplate { user, messages };
+    Html(template.render().unwrap())
 }
 
 #[tokio::main]

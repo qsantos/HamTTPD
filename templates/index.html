@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Welcome to HamTTPD!</title>
+    </head>
+    <body>
+        Hello <a href="mailto:{{user.email}}">{{user.display_name}}</a>.
+        Your call sign is <strong>{{user.callsign}}</strong>
+        {% if !messages.is_empty() %}
+        <ul>
+            {% for message in messages %}
+                <li>
+                    <strong>{{message.author}}:</strong>
+                    {{message.contents}}
+                    <em>({{message.created}})</em>
+                </li>
+            {% endfor %}
+
+        </ul>
+        {% endif %}
+        <br>
+        <form method="post" action=""><input type="text" name="message" /></form>
+    </body>
+</html>
