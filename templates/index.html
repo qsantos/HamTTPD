@@ -3,11 +3,62 @@
     <head>
         <meta charset="utf-8">
         <title>Welcome to HamTTPD!</title>
+        <style>
+            body {
+                max-width: 30em;
+                margin: 0 auto;
+                color: #040404;
+                background-color: #fcfcfc;
+            }
+            #message {
+                width:100%;
+                height:5em;
+                border-radius:5px;
+            }
+            input[type=submit] {
+                color: #fcfcfc;
+                background-color: #040404;
+                border-radius:5px;
+                width:100%;
+                font-size:1.2em;
+            }
+        </style>
     </head>
     <body>
-        Hello <a href="mailto:{{user.email}}">{{user.display_name}}</a>.
-        Your call sign is <strong>{{user.callsign}}</strong>
+        <h1>HamTTPD</h1>
+        <p>
+            Hello <a href="mailto:{{user.email}}">{{user.display_name}}</a>.
+            Your call sign is <strong>{{user.callsign}}</strong>.
+        </p>
+        <h3>About</h3>
+        <p>
+            HamTTPD is an online service that can be used over the
+            <a href="https://en.wikipedia.org/wiki/Amateur_radio">amateur radio</a> service.
+            To comply with regulations, communications are not encrypted.
+            Of course, no one should send password over an unencrypted channel.
+            But it is still possible to authenticate, thanks to a little-known feature of HTTPS:
+            <a href="https://blog.cloudflare.com/introducing-tls-client-auth/">client certificates</a>.
+        </p>
+        <p>
+            Currently, HamTTPD only accept certificates from
+            <a href="https://lotw.arrl.org/lotwuser/default">LotW</a>.
+            However, if local authorities start issuing certificates, they could be supported as well.
+            Ideally, the
+            <a href="https://en.wikipedia.org/wiki/International_Amateur_Radio_Union">IARU</a>
+            would be the root certificate authority, delegating to local authorities (FCC, MIC, ANFR, OFCOM, BNeztA, …).
+            Each authority would then produce certificates for individual amateur radio operators.
+            These final certificates could have a short duration (e.g. 3 months) and be renewed automatically.
+        </p>
+        <h3>Send a new message</h3>
+        <form method="post" action="">
+            <label for="message">Your message:</label>
+            <br>
+            <textarea id="message" name="message"></textarea>
+            <br>
+            <input type="submit" value="Send" />
+        </form>
         {% if !messages.is_empty() %}
+        <h3>Past messages</h3>
         <ul>
             {% for message in messages %}
                 <li>
@@ -19,7 +70,5 @@
 
         </ul>
         {% endif %}
-        <br>
-        <form method="post" action=""><input type="text" name="message" /></form>
     </body>
 </html>

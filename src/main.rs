@@ -10,7 +10,7 @@ use axum::{
     routing::get,
     Form, Router, Server,
 };
-use diesel::{Connection, PgConnection, RunQueryDsl};
+use diesel::{Connection, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 use serde::Deserialize;
 
 pub mod models;
@@ -86,6 +86,7 @@ async fn root(
     }
 
     let messages = self::schema::message::dsl::message
+        .order(self::schema::message::columns::created.desc())
         .load::<models::Message>(db)
         .expect("Error loading messages");
 
