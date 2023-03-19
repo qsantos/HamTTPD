@@ -4,6 +4,7 @@ use std::ops::DerefMut;
 use std::sync::{Arc, Mutex};
 
 use askama::Template;
+use axum::routing::get_service;
 use axum::{
     extract::{Query, State},
     response::Html,
@@ -12,6 +13,7 @@ use axum::{
 };
 use diesel::{Connection, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 use serde::Deserialize;
+use tower_http::services::ServeDir;
 
 pub mod models;
 pub mod schema;
@@ -104,6 +106,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(root).post(root))
+        .nest_service("/static", get_service(ServeDir::new("./static")))
         .with_state(shared_state);
     Server::bind(
         &"0.0.0.0:8000"
