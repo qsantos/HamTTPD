@@ -96,6 +96,22 @@ async fn root(
     Html(template.render().unwrap())
 }
 
+#[derive(Template)]
+#[template(path = "about.html")]
+struct AboutTemplate {
+    user: User,
+}
+
+async fn about(Query(params): Query<HashMap<String, String>>) -> Html<String> {
+    let distinguished_name = params
+        .get("dn")
+        .expect("Missing dn parameter in query string");
+    let user = User::from_dn(distinguished_name).expect("Could not authenticate user");
+
+    let template = AboutTemplate { user };
+    Html(template.render().unwrap())
+}
+
 #[tokio::main]
 async fn main() {
     let database_url =
@@ -106,6 +122,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(root).post(root))
+        .route("/about.html", get(about))
         .nest_service("/static", get_service(ServeDir::new("./static")))
         .with_state(shared_state);
     Server::bind(

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Welcome to HamTTPD!</title>
+        <style>
+            body {
+                max-width: 30em;
+                margin: 0 auto;
+                color: #040404;
+                background-color: #fcfcfc;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>HamTTPD</h1>
+        <p>
+            Hello <a href="mailto:{{user.email}}">{{user.display_name}}</a>.
+            Your call sign is <strong>{{user.callsign}}</strong>.
+        </p>
+        <h3>About</h3>
+        <p>
+            HamTTPD is an online service that can be used over the
+            <a href="https://en.wikipedia.org/wiki/Amateur_radio">amateur radio</a> service.
+            To comply with regulations, communications are not encrypted.
+            Of course, no one should send password over an unencrypted channel.
+            But it is still possible to authenticate, thanks to a little-known feature of HTTPS:
+            <a href="https://blog.cloudflare.com/introducing-tls-client-auth/">client certificates</a>.
+        </p>
+        <p>
+            Currently, HamTTPD only accept certificates from
+            <a href="https://lotw.arrl.org/lotwuser/default">LoTW</a>.
+            However, if local authorities start issuing certificates, they could be supported as well.
+            Ideally, the
+            <a href="https://en.wikipedia.org/wiki/International_Amateur_Radio_Union">IARU</a>
+            would be the root certificate authority, delegating to local authorities (FCC, MIC, ANFR, OFCOM, BNeztA, …).
+            Each authority would then produce certificates for individual amateur radio operators.
+            These final certificates could have a short duration (e.g. 3 months) and be renewed automatically.
+        </p>
+        <h3>Getting a Client Certificate</h3>
+        <p>
+            <strong>From your LoTW account:</strong>
+            When you first set-up TQSL, it generates a public and a private cryptographic keys.
+            The public key is sent to LoTW, which sends you a certificate in exchange.
+            You will need to export both your certificates and your private key, and then convert them in a format that HamFox can handle.
+            For this, first run <code>cat ~/.tqsl/certs/* >fullchain.pem</code>.
+            Then, open <code>~/.tqsl/keys/&lt;YOUR_CALLSIGN&gt;</code> in a text editor can copy the private key in a <code>key.pem</code> file.
+            It should look like the example below.
+        </p>
+        <pre><code>
+-----BEGIN PRIVATE KEY-----
+MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAMU0jhHs0du0svo3
+dL3PM0N1MaOxwz3Xy3EwLRG93771vl259qsDRrkRnOfJ73jbvgXu33pX3qDdutmd
+6oBQGM3wIa83DuWNYadMsCaLWAkP0euEh1XJEpZQXlHO/WOnOpFhh4HTINzNCzB5
+5Vo28nuaqEGZmjYn9VvldgKEb/4HAgMBAAECgYACI7LS4PXZ41j5u/ZJROEyfyf9
+taT/m8K6RKKIib3OrY3WKHlTm6J9yYIhRaCSeBfUqqXEBwYESsOHLt5na/cI6AwM
+VIjUQDR91PqaNuiz4w45VsjKcrDIsFobShltFTRtAxLToLEGTjusJ18gQl6BVa6s
+hrVUFWwC/RK1GDPQqQJBAOlmt/t6i+A7aXhmuHcKl5kg6VAlam9zs2L69ly2riX7
+KXaGNNL08NP75vaSkgOoUMfnjOOSoAcPDAikaHSF9U0CQQDYTKcXKAz42p3LfTVd
+yKfrT0qSq6WvlzBKWzR8dc+P06vJ8CAqyIwa6bO2te4wIk7C6DysuHLu0UfpK442
+eQajAkEAwpX+oUxjvUgLAHQzKhvMk7+ahFUNTWnajpTIPDeZLNUellABTjcjaLhE
+sCE2VpJG9sKW9UvS2s+yqqnW4/6iqQJARXr6AZo/8IBpR8CEsAeQySnDTrIMmwb5
+4CjEB2bgsdbQzCFyc8vQFaUUsZBnXtbmbf2j3+ewI77eVqxDFoRx+QJBAOVX/pgT
+6/635KeZX1xuZHlNAZE0McQrCfplA/N9i/31rctXR/jmy6Y0P3TMhzy07UKeLP0I
+i6x32yatWnIs9PM=
+-----END PRIVATE KEY-----
+        </code></pre>
+        </p>
+            You can then export the certifcate and private key to the PKCS #12 format with the following command.
+        </p>
+        <code>$ openssl pkcs12 -export -out my_certificate.p12 -in fullchain.pem -inkey key.pem -passout pass:</code>
+        <p>
+            Finally, open the settings of HamFox, search for “View Certificates” and click on the corresponding button.
+            In the modal window (see screenshot below), select the “Your Certificates” tab, click on “Import…”, and select the file “my_certificate.p12” file.
+        </p>
+    </body>
+</html>
