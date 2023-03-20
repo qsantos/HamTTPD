@@ -112,6 +112,15 @@ async fn about(Query(params): Query<HashMap<String, String>>) -> Html<String> {
     Html(template.render().unwrap())
 }
 
+#[derive(Template)]
+#[template(path = "404.html")]
+struct Error404Template {}
+
+async fn error_404() -> Html<String> {
+    let template = Error404Template {};
+    Html(template.render().unwrap())
+}
+
 #[tokio::main]
 async fn main() {
     let database_url =
@@ -124,6 +133,7 @@ async fn main() {
         .route("/", get(root).post(root))
         .route("/about.html", get(about))
         .nest_service("/static", get_service(ServeDir::new("./static")))
+        .fallback(error_404)
         .with_state(shared_state);
     Server::bind(
         &"0.0.0.0:8000"
