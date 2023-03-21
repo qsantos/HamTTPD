@@ -3,53 +3,24 @@
     <head>
         <meta charset="utf-8">
         <title>Welcome to HamTTPD!</title>
-        <style>
-            body {
-                max-width: 30em;
-                margin: 0 auto;
-                color: #040404;
-                background-color: #fcfcfc;
-            }
-            #message {
-                width:100%;
-                height:5em;
-                border-radius:5px;
-            }
-            input[type=submit] {
-                color: #fcfcfc;
-                background-color: #040404;
-                border-radius:5px;
-                width:100%;
-                font-size:1.2em;
-            }
-        </style>
+        <link rel="stylesheet" href="/static/style.css" />
     </head>
     <body>
         <h1>HamTTPD</h1>
-        <p>
-            Hello <a href="mailto:{{user.email}}">{{user.display_name}}</a>.
-            Your call sign is <strong>{{user.callsign}}</strong>.
-            <a href="/about.html">What is this?</a>
-        </p>
+        <p>Hello <a href="mailto:{{user.email}}">{{user.display_name}}</a>, your call sign is <strong>{{user.callsign}}</strong>.</p>
+        <p><a href="/about.html">What is this?</a></p>
         <h3>Send a new message</h3>
         <form method="post" action="">
             <label for="message">Your message:</label>
-            <br>
             <textarea id="message" name="message"></textarea>
-            <br>
             <input type="submit" value="Send" />
         </form>
         {% if !messages.is_empty() %}
         <h3>Past messages</h3>
         <ul>
             {% for message in messages %}
-                <li>
-                    <strong>{{message.author}}:</strong>
-                    {{message.content}}
-                    <em>({{message.created}})</em>
-                </li>
+            <li><strong>{{message.author}}:</strong> {{message.content}} <em>({{message.created}})</em></li>
             {% endfor %}
-
         </ul>
         {% endif %}
     </body>
