@@ -56,7 +56,7 @@ impl User {
 #[derive(Template)]
 #[template(path = "index.html")]
 struct IndexTemplate {
-    user: User,
+    user: Option<User>,
     messages: Vec<models::Message>,
 }
 
@@ -65,10 +65,9 @@ async fn root(
     Query(params): Query<HashMap<String, String>>,
     form: Option<Form<MessageForm>>,
 ) -> Html<String> {
-    let distinguished_name = params
-        .get("dn")
-        .expect("Missing dn parameter in query string");
-    let user = User::from_dn(distinguished_name).expect("Could not authenticate user");
+    let user = params.get("dn").map(|distinguished_name| {
+        User::from_dn(distinguished_name).expect("Could not authenticate user")
+    });
 
     let mut guard = state
         .db
@@ -76,15 +75,17 @@ async fn root(
         .expect("Failed to acquire lock on database connection");
     let db = guard.deref_mut();
 
-    if let Some(form) = form {
-        let message = models::NewMessage {
-            author: &user.callsign,
-            content: &form.message,
-        };
-        diesel::insert_into(schema::message::table)
-            .values(&message)
-            .execute(db)
-            .expect("Could not insert message");
+    if let Some(user) = &user {
+        if let Some(form) = form {
+            let message = models::NewMessage {
+                author: &user.callsign,
+                content: &form.message,
+            };
+            diesel::insert_into(schema::message::table)
+                .values(&message)
+                .execute(db)
+                .expect("Could not insert message");
+        }
     }
 
     let messages = self::schema::message::dsl::message
@@ -99,14 +100,13 @@ async fn root(
 #[derive(Template)]
 #[template(path = "about.html")]
 struct AboutTemplate {
-    user: User,
+    user: Option<User>,
 }
 
 async fn about(Query(params): Query<HashMap<String, String>>) -> Html<String> {
-    let distinguished_name = params
-        .get("dn")
-        .expect("Missing dn parameter in query string");
-    let user = User::from_dn(distinguished_name).expect("Could not authenticate user");
+    let user = params.get("dn").map(|distinguished_name| {
+        User::from_dn(distinguished_name).expect("Could not authenticate user")
+    });
 
     let template = AboutTemplate { user };
     Html(template.render().unwrap())

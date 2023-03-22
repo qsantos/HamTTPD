@@ -7,14 +7,24 @@
     </head>
     <body>
         <h1>HamTTPD</h1>
-        <p>Hello <a href="mailto:{{user.email}}">{{user.display_name}}</a>, your call sign is <strong>{{user.callsign}}</strong>.</p>
-        <p><a href="/about.html">What is this?</a></p>
+            <p><a href="/about.html">What is this?</a></p>
+        {% match user %}
+            {% when Some with (user) %}
+            <p>
+                Hello <a href="mailto:{{user.email}}">{{user.display_name}}</a>.
+                Your call sign is <strong>{{user.callsign}}</strong>.
+            </p>
         <h3>Send a new message</h3>
         <form method="post" action="">
             <label for="message">Your message:</label>
             <textarea id="message" name="message"></textarea>
             <input type="submit" value="Send" />
         </form>
+            {% when None %}
+            <p>
+                You are currently not logged in.
+            </p>
+        {% endmatch %}
         {% if !messages.is_empty() %}
         <h3>Past messages</h3>
         <ul>
