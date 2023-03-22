@@ -90,3 +90,7 @@ em {
     font-size: 0.9em;
     color: #888;
 }
+
+img {
+    max-width: 100%;
+}
