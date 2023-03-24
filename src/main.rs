@@ -53,13 +53,6 @@ impl User {
     }
 }
 
-#[derive(Template)]
-#[template(path = "index.html")]
-struct IndexTemplate {
-    user: Option<User>,
-    messages: Vec<models::Message>,
-}
-
 async fn root(
     State(state): State<Arc<AppState>>,
     Query(params): Query<HashMap<String, String>>,
@@ -93,14 +86,16 @@ async fn root(
         .load::<models::Message>(db)
         .expect("Error loading messages");
 
+
+    #[derive(Template)]
+    #[template(path = "index.html")]
+    struct IndexTemplate {
+        user: Option<User>,
+        messages: Vec<models::Message>,
+    }
+
     let template = IndexTemplate { user, messages };
     Html(template.render().unwrap())
-}
-
-#[derive(Template)]
-#[template(path = "about.html")]
-struct AboutTemplate {
-    user: Option<User>,
 }
 
 async fn about(Query(params): Query<HashMap<String, String>>) -> Html<String> {
@@ -108,15 +103,21 @@ async fn about(Query(params): Query<HashMap<String, String>>) -> Html<String> {
         User::from_dn(distinguished_name).expect("Could not authenticate user")
     });
 
+    #[derive(Template)]
+    #[template(path = "about.html")]
+    struct AboutTemplate {
+        user: Option<User>,
+    }
+
     let template = AboutTemplate { user };
     Html(template.render().unwrap())
 }
 
-#[derive(Template)]
-#[template(path = "404.html")]
-struct Error404Template {}
-
 async fn error_404() -> Html<String> {
+    #[derive(Template)]
+    #[template(path = "404.html")]
+    struct Error404Template {}
+
     let template = Error404Template {};
     Html(template.render().unwrap())
 }
