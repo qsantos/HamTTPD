@@ -86,7 +86,6 @@ async fn root(
         .load::<models::Message>(db)
         .expect("Error loading messages");
 
-
     #[derive(Template)]
     #[template(path = "index.html")]
     struct IndexTemplate {
