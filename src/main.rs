@@ -1,14 +1,17 @@
 use std::collections::HashMap;
 use std::env;
 use std::ops::DerefMut;
+use std::process::Command;
 use std::sync::{Arc, Mutex};
 
 use askama::Template;
+use axum::http::header;
+use axum::response::IntoResponse;
 use axum::routing::get_service;
 use axum::{
     extract::{Query, State},
     response::Html,
-    routing::get,
+    routing::{get, post},
     Form, Router, Server,
 };
 use diesel::{Connection, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
@@ -97,6 +100,85 @@ async fn root(
     Html(template.render().unwrap())
 }
 
+#[derive(Deserialize)]
+struct VisitorCertificateForm {
+    nickname: String,
+}
+
+async fn visitor(form: Option<Form<VisitorCertificateForm>>) -> impl IntoResponse {
+    // create client key
+    let status = Command::new("openssl")
+        .args(["genrsa", "-out", "client.key", "1024"])
+        .status()
+        .expect("Failed to run genrsa");
+    assert!(status.success(), "genrsa failed");
+
+    // create client certificate request
+    let status = Command::new("openssl")
+        .args([
+            "req",
+            "-new",
+            "-key",
+            "client.key",
+            "-out",
+            "client.csr",
+            "-subj",
+            "/CN=Visitor",
+        ])
+        .status()
+        .expect("Failed to run req");
+    assert!(status.success(), "req failed");
+
+    // create client certificate
+    let status = Command::new("openssl")
+        .args([
+            "x509",
+            "-req",
+            "-CA",
+            "ca.pem",
+            "-CAkey",
+            "ca.key",
+            "-CAcreateserial",
+            "-in",
+            "client.csr",
+            "-out",
+            "client.pem",
+        ])
+        .status()
+        .expect("Failed to run x509");
+    assert!(status.success(), "x509 failed");
+
+    // export private key and certificate to PKCS#12
+    let status = Command::new("openssl")
+        .args([
+            "pkcs12",
+            "-export",
+            "-out",
+            "client.p12",
+            "-in",
+            "client.pem",
+            "-inkey",
+            "client.key",
+            "-passout",
+            "pass:",
+        ])
+        .status()
+        .expect("Failed to run pkcs12");
+    assert!(status.success(), "pkcs12 failed");
+
+    let cert = std::fs::read("client.p12").expect("Could not read client.p12");
+    (
+        [
+            (header::CONTENT_TYPE, "application/x-pkcs12"),
+            (
+                header::CONTENT_DISPOSITION,
+                "attachment; filename=\"client.p12\"",
+            ),
+        ],
+        cert,
+    )
+}
+
 async fn about(Query(params): Query<HashMap<String, String>>) -> Html<String> {
     let user = params
         .get("dn")
@@ -132,6 +214,7 @@ async fn main() {
     let app = Router::new()
         .route("/", get(root).post(root))
         .route("/about.html", get(about))
+        .route("/visitor", post(visitor))
         .nest_service("/static", get_service(ServeDir::new("./static")))
         .fallback(error_404)
         .with_state(shared_state);

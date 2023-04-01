@@ -25,6 +25,11 @@
                 You are currently not logged in.
                 To log in, please have a look at the <a href="/about.html">about page</a>.
             </p>
+            <form method="post" action="/visitor">
+                <label for="nickname">Your nickname:</label>
+                <input type="text" id="nickname" name="nickname" placeholder="John Doe" />
+                <input type="submit" value="Request a visitor certificate" />
+            </form>
         {% endmatch %}
         {% if !messages.is_empty() %}
         <h3>Past messages</h3>
