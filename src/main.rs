@@ -58,9 +58,9 @@ async fn root(
     Query(params): Query<HashMap<String, String>>,
     form: Option<Form<MessageForm>>,
 ) -> Html<String> {
-    let user = params.get("dn").map(|distinguished_name| {
-        User::from_dn(distinguished_name).expect("Could not authenticate user")
-    });
+    let user = params
+        .get("dn")
+        .and_then(|distinguished_name| User::from_dn(distinguished_name));
 
     let mut guard = state
         .db
@@ -98,9 +98,9 @@ async fn root(
 }
 
 async fn about(Query(params): Query<HashMap<String, String>>) -> Html<String> {
-    let user = params.get("dn").map(|distinguished_name| {
-        User::from_dn(distinguished_name).expect("Could not authenticate user")
-    });
+    let user = params
+        .get("dn")
+        .and_then(|distinguished_name| User::from_dn(distinguished_name));
 
     #[derive(Template)]
     #[template(path = "about.html")]
