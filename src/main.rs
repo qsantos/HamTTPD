@@ -106,6 +106,8 @@ struct VisitorCertificateForm {
 }
 
 async fn visitor(form: Option<Form<VisitorCertificateForm>>) -> impl IntoResponse {
+    let nickname = &form.unwrap().nickname;
+
     // create client key
     let status = Command::new("openssl")
         .args(["genrsa", "-out", "client.key", "1024"])
@@ -117,13 +119,15 @@ async fn visitor(form: Option<Form<VisitorCertificateForm>>) -> impl IntoRespons
     let status = Command::new("openssl")
         .args([
             "req",
+            "-config",
+            "openssl.conf",
             "-new",
             "-key",
             "client.key",
             "-out",
             "client.csr",
             "-subj",
-            "/CN=Visitor",
+            &format!("/{CALLSIGN_OID}=FAKE/{DISPLAYNAME_OID}={nickname} (Visitor)/{EMAIL_OID}=fake@example.com"),
         ])
         .status()
         .expect("Failed to run req");
