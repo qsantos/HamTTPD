@@ -2,3 +2,9 @@
 /.env
 /ca.key
 /ca.pem
+/ca.srl
+/client.key
+/client.csr
+/client.pem
+/client.p12
+/root.pem
