@@ -207,8 +207,66 @@ async fn error_404() -> Html<String> {
     Html(template.render().unwrap())
 }
 
+fn has_ca() -> bool {
+    // extract modulus of secret key
+    let sk_mod = Command::new("openssl")
+        .args(["rsa", "-noout", "-modulus", "-in", "ca.key"])
+        .output()
+        .expect("Failed to check CA's secret key's modulus");
+    if !sk_mod.status.success() {
+        return false;
+    }
+    let sk_mod = sk_mod.stdout;
+
+    // extract modulus of public key
+    let pk_mod = Command::new("openssl")
+        .args(["x509", "-noout", "-modulus", "-in", "ca.pem"])
+        .output()
+        .expect("Failed to check CA's public key's modulus");
+    if !pk_mod.status.success() {
+        return false;
+    }
+    let pk_mod = pk_mod.stdout;
+
+    sk_mod == pk_mod
+}
+
+fn ensure_ca() {
+    if has_ca() {
+        println!("CA certificate present, using existing one");
+        return;
+    }
+    println!("No CA certificate, generating one");
+
+    // generate secret key
+    let status = Command::new("openssl")
+        .args(["genrsa", "-out", "ca.key", "1024"])
+        .status()
+        .expect("Failed to generate secret key for CA");
+    assert!(status.success(), "Generating secret key for CA failed");
+
+    // create certificate
+    let status = Command::new("openssl")
+        .args([
+            "req",
+            "-new",
+            "-x509",
+            "-key",
+            "ca.key",
+            "-out",
+            "ca.pem",
+            "-subj",
+            "/CN=127.0.0.1",
+        ])
+        .status()
+        .expect("Failed to create certificate for CA");
+    assert!(status.success(), "Creating certificate for CA failed");
+}
+
 #[tokio::main]
 async fn main() {
+    ensure_ca();
+
     let database_url =
         env::var("DATABASE_URL").expect("Please set the DATABASE_URL environment variable");
     let db = PgConnection::establish(&database_url).expect("Failed to connect to database");
