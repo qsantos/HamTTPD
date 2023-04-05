@@ -1,8 +1,8 @@
 /target
 /.env
-/ca.key
-/ca.pem
-/ca.srl
+/local-ca.key
+/local-ca.pem
+/local-ca.srl
 /client.key
 /client.csr
 /client.pem

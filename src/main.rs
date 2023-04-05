@@ -139,9 +139,9 @@ async fn visitor(form: Option<Form<VisitorCertificateForm>>) -> impl IntoRespons
             "x509",
             "-req",
             "-CA",
-            "ca.pem",
+            "local-ca.pem",
             "-CAkey",
-            "ca.key",
+            "local-ca.key",
             "-CAcreateserial",
             "-in",
             "client.csr",
@@ -233,17 +233,20 @@ fn has_ca() -> bool {
 
 fn ensure_ca() {
     if has_ca() {
-        println!("CA certificate present, using existing one");
+        println!("Local CA certificate present, using it");
         return;
     }
-    println!("No CA certificate, generating one");
+    println!("No local CA certificate, generating one");
 
     // generate secret key
     let status = Command::new("openssl")
-        .args(["genrsa", "-out", "ca.key", "1024"])
+        .args(["genrsa", "-out", "local-ca.key", "1024"])
         .status()
-        .expect("Failed to generate secret key for CA");
-    assert!(status.success(), "Generating secret key for CA failed");
+        .expect("Failed to generate secret key for local CA");
+    assert!(
+        status.success(),
+        "Generating secret key for local CA failed"
+    );
 
     // create certificate
     let status = Command::new("openssl")
@@ -252,15 +255,22 @@ fn ensure_ca() {
             "-new",
             "-x509",
             "-key",
-            "ca.key",
+            "local-ca.key",
             "-out",
-            "ca.pem",
+            "local-ca.pem",
             "-subj",
             "/CN=127.0.0.1",
         ])
         .status()
-        .expect("Failed to create certificate for CA");
-    assert!(status.success(), "Creating certificate for CA failed");
+        .expect("Failed to create certificate for local CA");
+    assert!(status.success(), "Creating certificate for local CA failed");
+
+    // combine LoTW and local CAs
+    let lotw_ca = std::fs::read("LoTW-root.pem").expect("Failed to read LoTW CA");
+    let mut local_ca = std::fs::read("local-ca.pem").expect("Failed to read local CA");
+    let mut combined_ca = lotw_ca;
+    combined_ca.append(&mut local_ca);
+    std::fs::write("ca.pem", combined_ca).expect("Failed to create combined CA file");
 }
 
 #[tokio::main]
