@@ -210,7 +210,7 @@ async fn error_404() -> Html<String> {
 fn has_ca() -> bool {
     // extract modulus of secret key
     let sk_mod = Command::new("openssl")
-        .args(["rsa", "-noout", "-modulus", "-in", "ca.key"])
+        .args(["rsa", "-noout", "-modulus", "-in", "local-ca.key"])
         .output()
         .expect("Failed to check CA's secret key's modulus");
     if !sk_mod.status.success() {
@@ -266,10 +266,10 @@ fn ensure_ca() {
     assert!(status.success(), "Creating certificate for local CA failed");
 
     // combine LoTW and local CAs
-    let lotw_ca = std::fs::read("LoTW-root.pem").expect("Failed to read LoTW CA");
-    let mut local_ca = std::fs::read("local-ca.pem").expect("Failed to read local CA");
-    let mut combined_ca = lotw_ca;
-    combined_ca.append(&mut local_ca);
+    let mut lotw_ca = std::fs::read("LoTW-root.pem").expect("Failed to read LoTW CA");
+    let local_ca = std::fs::read("local-ca.pem").expect("Failed to read local CA");
+    let mut combined_ca = local_ca;
+    combined_ca.append(&mut lotw_ca);
     std::fs::write("ca.pem", combined_ca).expect("Failed to create combined CA file");
 }
 
