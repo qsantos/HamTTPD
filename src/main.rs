@@ -17,6 +17,7 @@ use axum::{
 use diesel::{Connection, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 use serde::Deserialize;
 use tower_http::services::ServeDir;
+use tower_http::trace::TraceLayer;
 
 pub mod models;
 pub mod schema;
@@ -276,6 +277,9 @@ fn ensure_ca() {
 #[tokio::main]
 async fn main() {
     ensure_ca();
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
 
     let database_url =
         env::var("DATABASE_URL").expect("Please set the DATABASE_URL environment variable");
@@ -288,6 +292,7 @@ async fn main() {
         .route("/about.html", get(about))
         .route("/visitor", post(visitor))
         .nest_service("/static", get_service(ServeDir::new("./static")))
+        .layer(TraceLayer::new_for_http())
         .fallback(error_404)
         .with_state(shared_state);
     Server::bind(
