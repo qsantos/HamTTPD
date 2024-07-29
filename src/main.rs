@@ -295,6 +295,7 @@ async fn main() {
         .layer(TraceLayer::new_for_http())
         .fallback(error_404)
         .with_state(shared_state);
+    println!("Listening to http://0.0.0.0:8000");
     Server::bind(
         &"0.0.0.0:8000"
             .parse()
